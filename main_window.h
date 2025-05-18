@@ -7,7 +7,7 @@ class MainWindow : public QMainWindow
 {
 public:
     MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() = default;
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -15,7 +15,7 @@ protected:
 private:
     void selectTile(char tile);
     void onTileClicked(int row, int col);
-    void undoTilePlacement();
+    void restorePreviousTile();
 
     void clearLevel();
     void resizeLevel();
@@ -24,7 +24,10 @@ private:
 
     struct TileAction
     {
-        // TODO
+        int row;
+        int col;
+        char previousTile;
+        char newTile;
     };
 
     enum class TileType
@@ -36,20 +39,15 @@ private:
         Spikes   = '^',
         Wall     = '#',
         DarkWall = '=',
-        Air      = ' '
+        Air      = '-'
     };
 
     TileType selectedTile;
-    QStack<TileAction> undoStack;
+    QStack<TileAction> actionHistory;
 
-    /*
-    QTableWidget *level;
-            OR
-    QGraphicsGridLayout *level;
-    */
 
     QPushButton* createButton(const QIcon &icon, TileType tileType, QHBoxLayout* layout);
-    // QPushButton* createButton(const QIcon &icon, std::function<void()> action);
+    QPushButton* createActionButton(const QIcon &icon, const QString &tooltip, QHBoxLayout* layout);
     QTableWidget* level = nullptr;
 };
 
