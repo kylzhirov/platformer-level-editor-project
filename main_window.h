@@ -48,7 +48,9 @@ private:
     QGraphicsGridLayout *level;
     */
 
-    QPushButton* createButton(const QIcon &icon, std::function<void()> action);
+    QPushButton* createButton(const QIcon &icon, TileType tileType, QHBoxLayout* layout);
+    // QPushButton* createButton(const QIcon &icon, std::function<void()> action);
+    QTableWidget* level = nullptr;
 };
 
 #endif // MAIN_WINDOW_H
