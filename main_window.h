@@ -21,6 +21,9 @@ private:
     void resizeLevel();
 
     void exportToFile();
+    void importFromFile();
+    void setTileAt(int row, int col, char tileChar);
+
 
     struct TileAction
     {

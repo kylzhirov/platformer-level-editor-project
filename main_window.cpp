@@ -54,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
     centralWidget->show();
 
     QToolBar *toolBar = addToolBar("File operations");
+
     QAction *exportAction = new QAction("Export", this);
     connect(exportAction, &QAction::triggered, this, &MainWindow::exportToFile);
     toolBar->addAction(exportAction);
@@ -62,6 +63,10 @@ MainWindow::MainWindow(QWidget *parent)
     undoAction->setShortcut(QKeySequence("Ctrl+Z"));
     connect(undoAction, &QAction::triggered, this, &MainWindow::restorePreviousTile);
     toolBar->addAction(undoAction);
+
+    QAction *importAction = new QAction("Import", this);
+    connect(importAction, &QAction::triggered, this, &MainWindow::importFromFile);
+    toolBar->addAction(importAction);
 }
 
 void MainWindow::onTileClicked(int row, int col)
@@ -273,4 +278,99 @@ void MainWindow::exportToFile()
     file.close();
     
     QMessageBox::information(this, "Success!", "Level export is done");
+}
+
+void MainWindow::importFromFile() {
+    QString filePath = QFileDialog::getOpenFileName(this, "Import Level", QString(), "RLL Files (*.rll)");
+
+    if (filePath.isEmpty()) return;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(this, "Error", "Could not open the file");
+        return;
+    }
+
+    QTextStream in(&file);
+    QString encoded = in.readAll();
+    file.close();
+
+    try {
+        QStringList rows = encoded.split('|');
+
+
+        int maxCols = rows[0].length();
+
+        QMessageBox::StandardButton clearResponse = QMessageBox::question(
+            this,
+            "Warning",
+            "Importing a level requires clearing the current session.\nDo you want to proceed?",
+            QMessageBox::Yes | QMessageBox::No
+        );
+
+        if (clearResponse == QMessageBox::Yes) clearLevel();
+        else return;
+
+
+        // Parsing
+        for (int row = 0; row < rows.size(); row++) {
+            QString rowStr = rows[row];
+
+            int col = 0;
+
+            for (int i = 0; i < rowStr.size() && col < level->columnCount(); i++) {
+                if (rowStr[i].isDigit()) {
+
+                    // Read the number of repeating tiles
+                    int count = 0;
+                    while (i < rowStr.size() && rowStr[i].isDigit()) {
+                        count = count * 10 + rowStr[i].digitValue(); // shifting digits for base-10
+                        i++;
+                    }
+
+                    if (i < rowStr.size()) {
+                        char tile = rowStr[i].toLatin1();
+                        for (int j = 0; j < count && col < level->columnCount(); j++) {
+                            setTileAt(row, col++, tile);
+                        }
+                    }
+                } else {
+                    char tile = rowStr[i].toLatin1();
+                    setTileAt(row, col++, tile);
+                }
+            }
+        }
+
+        statusBar()->showMessage("Level imported successfully");
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, "Error", QString("Failed to import level: %1").arg(e.what()));
+    }
+}
+
+void MainWindow::setTileAt(int row, int col, char tileChar)
+{
+    QTableWidgetItem* item = level->item(row, col);
+    if (!item) {
+        item = new QTableWidgetItem();
+        level->setItem(row, col, item);
+    }
+
+    QIcon icon;
+    switch (tileChar) {
+        case '*': icon = QIcon("data/sprites/coin.png"); break;
+        case '&': icon = QIcon("data/sprites/enemy.png"); break;
+        case 'E': icon = QIcon("data/sprites/exit.png"); break;
+        case '@': icon = QIcon("data/sprites/player.png"); break;
+        case '^': icon = QIcon("data/sprites/spikes.png"); break;
+        case '#': icon = QIcon("data/sprites/wall.png"); break;
+        case '=': icon = QIcon("data/sprites/wall_dark.png"); break;
+        case '-':
+        default:
+            icon = QIcon();
+            tileChar = '-';
+            break;
+    }
+
+    item->setIcon(icon);
+    item->setData(Qt::UserRole, tileChar);
 }
